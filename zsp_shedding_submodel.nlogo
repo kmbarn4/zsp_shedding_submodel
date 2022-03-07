@@ -268,13 +268,13 @@ to go
 ;        ]
 ;      ]
 
-    ask neighbor-pond-patches[
+    ask one-of neighbor-pond-patches[
     set pcolor violet
         ]
 
-;     ask near-deep-patches[
-;     set pcolor orange
-;        ]
+     ask one-of near-deep-patches[
+     set pcolor orange
+        ]
 
 
       ;set nearest-deep-patch-zsp zsp-release - f-selfinfect - same-patch-zsp - neighbor-patch-zsp
@@ -503,7 +503,7 @@ Bd-inf-tadpoles-per-infpond-patch
 Bd-inf-tadpoles-per-infpond-patch
 0
 100
-1.0
+2.0
 1
 1
 NIL
