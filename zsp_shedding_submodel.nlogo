@@ -16,7 +16,6 @@ globals
 
 breed [ eggs egg ]
 breed [ tadpoles tadpole ]
-;breed [ prezsp a-prezsp ]                        ;prezooporangium
 
 patches-own
 [
@@ -53,15 +52,10 @@ tadpoles-own
   vac
 
 ]
-;prezsp-own
-;[
-  ;host                                            ;who of host infected
-  ;counter                                         ;7 days until sporangia develops
-;]
-;
+
 to setup
   ca
-  random-seed 142
+  random-seed behaviorspace-run-number
   ifelse SimplePond = TRUE
   [ resize-world 0 3 0 3
     set-patch-size 80 ]
@@ -138,7 +132,6 @@ to setup
       ]
     ;  print shoreline
     ]
-    print shoreline
     let perimeterp patches with [ pp = 1 ]
     ask perimeterp [
      initialize-tadpole-pop
@@ -176,17 +169,14 @@ to setup
 ;  ]
   ask patches [
     set neighbor-pond-patches neighbors with [pond = 1]
-    set near-deep-patches patches in-radius 2 with [pond = 1 and pp = 0]
-    ;set near-deep-patches (list patches in-radius 2 with [pond = 1 and pp = 0]) ;in-radius 1 only selects the patch which shares the full border so I've chosen to use in-radius 2
-    ;set near-deep-patches neighbors with [ pond = 1 and pp = 0]
+    set near-deep-patches neighbors with [ pond = 1 and pp = 0]
   ]
   reset-ticks
 end
 
 to go
-  random-seed behaviorspace-run-number
-  ;if ticks = 90 [ stop ]
-  if ticks = 101 [ stop ]
+  ;random-seed behaviorspace-run-number    ;this was preventing random selection of patches
+  if ticks = 50 [ stop ]
   ask tadpoles [
     set aid aid + 1
    ; if random-float 1 < 0.06 [                                                           ;tadpole daily mortality probability estimated from Govindarajulu 2006
@@ -240,26 +230,25 @@ to go
         ]
    ;   set spn spn - round ((0.148 + random-float 0.006) * spn)   ;sporangia loss rate 0.148 – 0.153 per day
       let zsp-release round (spn * 17.8)                         ;zoospore release rate at 23 degrees C (Woodhams et al., 2008; Briggs 2010 SI)
-
-      let f-selfinfect round (0.05 * zsp-release)
-
-      ;fraction of the released zoospores that immediately self-infect the host
+      let f-selfinfect round (0.05 * zsp-release)  ;fraction of the released zoospores that immediately self-infect the host
       set pz0 f-selfinfect ;pz0 + 1
 
 
-      set same-patch-zsp round (0.4 * (zsp-release - f-selfinfect))
-      ;40% of zoospores in pool deposited into the patch the tadpole is currently on
+      set same-patch-zsp round (0.4 * (zsp-release - f-selfinfect)) ;40% of zoospores in pool deposited into the patch the tadpole is currently on
       ask patch-here [
-        set pcolor yellow
-     ; set zsp zsp + same-patch-zsp
+      ;set pcolor yellow
+      set zsp zsp + same-patch-zsp
      ; set pcolor scale-color red zsp 1 500000
         ]
 
-
      ; set neighbor-patch-zsp round (0.167 * (zsp-release - f-selfinfect - same-patch-zsp))
-      set neighbor-patch-zsp round (0.1 * (zsp-release - f-selfinfect))
-      ;10% of zoospores in pool deposited onto neighbor patch
-     ; ask one-of other patches in-radius 1 with [pond = 1] [
+      set neighbor-patch-zsp round (0.1 * (zsp-release - f-selfinfect)) ;10% of zoospores in pool deposited onto neighbor patch
+      ask one-of neighbor-pond-patches[
+    ;  set pcolor violet
+      set zsp zsp + neighbor-patch-zsp
+        ]
+
+      ; ask one-of other patches in-radius 1 with [pond = 1] [
 ;     ask patch-here [
 ;      ask one-of other patches in-radius 1 with [pond = 1] [
 ;      set pcolor violet
@@ -268,76 +257,24 @@ to go
 ;        ]
 ;      ]
 
-    ask one-of neighbor-pond-patches[
-    set pcolor violet
+   ;remaining approx 50% of zoospores deposited onto nearest deepest patch
+   ;set nearest-deep-patch-zsp zsp-release - f-selfinfect - same-patch-zsp - neighbor-patch-zsp
+    set nearest-deep-patch-zsp round (0.5 * (zsp-release - f-selfinfect))
+    ask one-of near-deep-patches[
+      set zsp zsp + nearest-deep-patch-zsp
+    ; set pcolor orange
         ]
-
-     ask one-of near-deep-patches[
-     set pcolor orange
-        ]
-
-
-      ;set nearest-deep-patch-zsp zsp-release - f-selfinfect - same-patch-zsp - neighbor-patch-zsp
-      set nearest-deep-patch-zsp round (0.5 * (zsp-release - f-selfinfect))
-      ;remaining approx 50% of zoospores deposited onto nearest deepest patch
-;      ask min-one-of patches with [pond = 1 and pp = 0] [distance myself] [
-;      set pcolor orange
-    ;  set zsp zsp + nearest-deep-patch-zsp
-     ; set pcolor scale-color red zsp 1 500000
         ]
 
     ]
 
 
-;  ask patches [
-;    if zsp > 0 [
-;      set pcolor scale-color red zsp 1 500000
-;    ]
-;  ]
-;  let pondpatches patches with [ pond = 1 ]
-;  ask pondpatches [
-;    set prev-zsp zsp
-;    ]
-;  ask pondppatches [
-;    set nspn (sum [ spn ] of tadpoles-here + sum [ spn ] of metamorphs-here)                           ;count total number of zoosporangia on all infected frogs
-;    ;print nspn
-;    if zsp > 0 [                                                  ;zoospore-decay  loss rate of zoospore from the zoospore pool 0.248 – 0.252
-;      let zsp-d round ((0.248 + random-float 0.005) * zsp)
-;      set zsp (zsp - zsp-d)
-;  ;    set pcolor scale-color red zsp 0 1000
-;    ]
-;    ;set zsp (zsp + round (nspn * 17.8))                          ;zoospore release rate at 23 degrees C (Woodhams et al., 2008; Briggs 2010 SI) ;
-;    let prop-zsp round (0.05 * zsp)                               ;proportion of zoospores that encounter hosts   from Farthing et al., 2021; .001
-;    let prop-zsp-host round (0.5 * prop-zsp)                      ;proportion of zoospores successfully infect host after encounter; .0001
-;    repeat prop-zsp-host [
-;      if any? turtles-here [
-;        ask one-of turtles-here [
-;          set pz0 pz0 + 1
-;          set bd 1                                               ;simulating heterogenous susceptibility
-;          set color white
-;
-;          ]
-;        ]
-;    ]
-;    set zsp (zsp - prop-zsp)
-;  ;  set pcolor scale-color red zsp 0 10000
-;    ]
+  ask patches [
+    if zsp > 0 [
+      set pcolor scale-color red zsp 1 350000
+    ]
+  ]
 
-;  ask prezsp [
-;    set counter counter + 1
-;    if counter = 0 [
-;      let hostid host
-;      if any? frogs with [ who = hostid ] [
-;        ask frog hostid [
-;          set bd 1
-;          set color white
-;          set spn spn + 1
-;          set zspn-inc zspn-inc + 1                            ;update incidence counter
-;          ]
-;      ]
-;      die
-;    ]
-;  ]
 
   if ticks > 1 [
     if sum [ prev-zsp ] of patches > 0 [
@@ -503,7 +440,7 @@ Bd-inf-tadpoles-per-infpond-patch
 Bd-inf-tadpoles-per-infpond-patch
 0
 100
-2.0
+1.0
 1
 1
 NIL
@@ -720,6 +657,24 @@ infected patches
 17
 1
 11
+
+PLOT
+696
+160
+896
+310
+zsp per patch
+zsp per patch
+frequency
+0.0
+325000.0
+0.0
+8.0
+false
+false
+"" ""
+PENS
+"default" 10000.0 1 -16777216 true "" "histogram [ zsp ] of patches with [ zsp > 0 ] "
 
 @#$#@#$#@
 ## WHAT IS IT?
